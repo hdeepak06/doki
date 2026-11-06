@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="doki_black">#060913</color>
+    <color name="doki_navy">#0A0F1D</color>
+    <color name="doki_surface">#111827</color>
+    <color name="doki_cyan">#00F5FF</color>
+    <color name="doki_violet">#9D4EDD</color>
+    <color name="doki_violet_dark">#7B2CBF</color>
+    <color name="doki_white">#FFFFFF</color>
+</resources>
+

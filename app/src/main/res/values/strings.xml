@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">DOKI AI</string>
+    <string name="assistant_name">DOKI</string>
+    <string name="wake_phrase">Hey DOKI</string>
+    <string name="notification_channel_name">DOKI Assistant Service</string>
+    <string name="notification_channel_desc">Active background listening for Hey DOKI wake-word</string>
+    <string name="notification_listening_title">DOKI is listening</string>
+    <string name="notification_listening_content">Say \"Hey DOKI\" or tap to open</string>
+    <string name="notification_action_stop">Stop Listening</string>
+    <string name="notification_action_open">Open DOKI</string>
+</resources>
+

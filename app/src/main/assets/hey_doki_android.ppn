@@ -1,0 +1,4 @@
+# Picovoice Porcupine Custom Wake Word Model for "Hey Doki"
+# Download your custom trained hey_doki_android.ppn from https://console.picovoice.ai/
+# and place it here. DOKI will automatically load it.
+

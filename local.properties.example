@@ -1,0 +1,7 @@
+## DOKI AI Configuration
+# picovoice.access_key=YOUR_PICOVOICE_ACCESS_KEY
+# gemini.api_key=YOUR_GEMINI_API_KEY
+# supabase.url=https://your-project.supabase.co
+# supabase.anon_key=YOUR_SUPABASE_ANON_KEY
+sdk.dir=C:\\Users\\HP\\AppData\\Local\\Android\\Sdk
+
