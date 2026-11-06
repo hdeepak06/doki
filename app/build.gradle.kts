@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.doki.ai"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.doki.ai"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
 
@@ -21,7 +21,6 @@ android {
             useSupportLibrary = true
         }
 
-        // Build config fields for configurable AI & Wake Word
         buildConfigField("String", "GEMINI_MODEL_DEFAULT", "\"gemini-1.5-flash\"")
         buildConfigField("String", "DEFAULT_LANGUAGE", "\"en-US\"")
         buildConfigField("String", "WAKE_WORD_DEFAULT", "\"hey doki\"")
@@ -29,13 +28,11 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug") // Fallback for building release without keystore
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -50,7 +47,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        freeCompilerArgs += listOf(
+        freeCompilerArgs = freeCompilerArgs + listOf(
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=kotlinx.serialization.ExperimentalSerializationApi"
@@ -130,4 +127,3 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
-
