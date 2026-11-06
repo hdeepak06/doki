@@ -20,17 +20,19 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Ensure Gradle Wrapper JAR and Permissions
+      - name: Ensure Official Gradle Wrapper
         run: |
           mkdir -p gradle/wrapper
           curl -sSLo gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar
-          sed -i 's/\r$//' gradlew
+          curl -sSLo gradlew https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradlew
           chmod +x gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
