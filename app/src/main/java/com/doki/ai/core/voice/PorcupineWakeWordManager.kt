@@ -64,7 +64,7 @@ class PorcupineWakeWordManager(
                 builder.setKeywordPath(customModelPath)
             } else {
                 Log.w(tag, "Custom Hey DOKI model unavailable/invalid; falling back to PORCUPINE built-in keyword")
-                builder.setKeywords(arrayOf(Porcupine.BuiltInKeyword.PORCUPINE))
+                builder.setKeyword(Porcupine.BuiltInKeyword.PORCUPINE)
             }
 
             porcupineManager = builder.build(context, callback)
