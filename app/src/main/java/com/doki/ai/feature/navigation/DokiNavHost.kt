@@ -7,6 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -36,6 +39,19 @@ import com.doki.ai.feature.reminders.RemindersViewModel
 import com.doki.ai.feature.settings.SettingsScreen
 import com.doki.ai.feature.settings.SettingsViewModel
 import com.doki.ai.feature.splash.SplashScreen
+
+@Composable
+inline fun <reified VM : ViewModel> dokiViewModel(crossinline creator: () -> VM): VM {
+    val factory = remember {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return creator() as T
+            }
+        }
+    }
+    return viewModel(factory = factory)
+}
 
 @Composable
 fun DokiNavHost(
@@ -73,7 +89,7 @@ fun DokiNavHost(
 
         // 2. Onboarding Screen
         composable(Screen.Onboarding.route) {
-            val vm = viewModel { OnboardingViewModel(container.settingsRepository) }
+            val vm = dokiViewModel { OnboardingViewModel(container.settingsRepository) }
             OnboardingScreen(
                 viewModel = vm,
                 onFinish = {
@@ -86,7 +102,7 @@ fun DokiNavHost(
 
         // 3. Permission Setup Screen
         composable(Screen.Permissions.route) {
-            val vm = viewModel { PermissionViewModel() }
+            val vm = dokiViewModel { PermissionViewModel() }
             PermissionSetupScreen(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
@@ -100,7 +116,7 @@ fun DokiNavHost(
 
         // 4. Home Screen
         composable(Screen.Home.route) {
-            val vm = viewModel {
+            val vm = dokiViewModel {
                 HomeViewModel(
                     container.settingsRepository,
                     container.wakeWordManager
@@ -120,7 +136,7 @@ fun DokiNavHost(
 
         // 5. Voice Assistant Screen
         composable(Screen.VoiceAssistant.route) {
-            val vm = viewModel {
+            val vm = dokiViewModel {
                 VoiceAssistantViewModel(
                     container.speechRecognizer,
                     container.textToSpeech,
@@ -146,7 +162,7 @@ fun DokiNavHost(
         ) { backStackEntry ->
             val convId = backStackEntry.arguments?.getString("conversationId") ?: "new"
             val prompt = backStackEntry.arguments?.getString("prompt")
-            val vm = viewModel {
+            val vm = dokiViewModel {
                 AiChatViewModel(
                     container.conversationRepository,
                     container.memoryRepository,
@@ -164,7 +180,7 @@ fun DokiNavHost(
 
         // 7. Conversation History Screen
         composable(Screen.History.route) {
-            val vm = viewModel { ConversationHistoryViewModel(container.conversationRepository) }
+            val vm = dokiViewModel { ConversationHistoryViewModel(container.conversationRepository) }
             ConversationHistoryScreen(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
@@ -174,7 +190,7 @@ fun DokiNavHost(
 
         // 8. Memory Management Screen
         composable(Screen.Memory.route) {
-            val vm = viewModel { MemoryViewModel(container.memoryRepository) }
+            val vm = dokiViewModel { MemoryViewModel(container.memoryRepository) }
             MemoryManagementScreen(
                 viewModel = vm,
                 onBack = { navController.popBackStack() }
@@ -183,7 +199,7 @@ fun DokiNavHost(
 
         // 9. Commands Screen
         composable(Screen.Commands.route) {
-            val vm = viewModel {
+            val vm = dokiViewModel {
                 CommandsViewModel(
                     container.commandRepository,
                     container.toolRegistry
@@ -197,7 +213,7 @@ fun DokiNavHost(
 
         // 10. Reminders Screen
         composable(Screen.Reminders.route) {
-            val vm = viewModel { RemindersViewModel(container.reminderRepository) }
+            val vm = dokiViewModel { RemindersViewModel(container.reminderRepository) }
             RemindersScreen(
                 viewModel = vm,
                 onBack = { navController.popBackStack() }
@@ -206,7 +222,7 @@ fun DokiNavHost(
 
         // 11. Settings Screen
         composable(Screen.Settings.route) {
-            val vm = viewModel {
+            val vm = dokiViewModel {
                 SettingsViewModel(
                     container.settingsRepository,
                     container.textToSpeech
@@ -228,4 +244,3 @@ fun DokiNavHost(
         }
     }
 }
-
