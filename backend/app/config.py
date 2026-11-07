@@ -32,11 +32,11 @@ class Settings(BaseSettings):
 
     # Google Gemini Config (PRIMARY BRAIN)
     GEMINI_API_KEY: Optional[str] = os.environ.get("GEMINI_API_KEY")
-    GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
     GEMINI_FALLBACK_MODELS: List[str] = [
-        "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
+        "gemini-2.5-flash",
         "gemini-1.5-flash-8b"
     ]
     

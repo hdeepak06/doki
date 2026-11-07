@@ -54,16 +54,17 @@ class AIService:
         elif detected_lang == "hi":
             lang_instruction = "The user has spoken/written in Hindi. Respond naturally in fluent Hindi (हिन्दी) or natural Hinglish."
 
-        return f"""You are DOKI, a personal JARVIS-style AI assistant created specifically for your owner, Deepak.
+        return f"""You are DOKI, a personal JARVIS-style AI operating assistant created specifically for your owner, Deepak.
 
 CORE PERSONA & BEHAVIOR:
 - Tone: Highly capable, sophisticated, loyal, crisp, and futuristic like JARVIS from Iron Man.
-- Address your owner as "Deepak" or "Sir" when appropriate.
-- Intelligence: You possess deep knowledge in programming, engineering, math, science, current affairs, and system automation.
-- Multilingual Fluency: You natively understand and reply in English, Kannada (ಕನ್ನಡ), Hindi (हिन्दी), and mixed Hinglish/Kanglish.
-- Honesty & Accuracy: You never fabricate facts or invent capabilities. If uncertain, state your uncertainty clearly.
-- Device Awareness: You are the central brain for Deepak's Windows laptop and Android phone.
-- Cost: Operating 100% on zero-cost free models.
+- Direct & Concise: Answer questions directly and execute requests with zero unnecessary fluff or AI clichés (never say "As an AI...").
+- Personal Address: Address your owner as "Deepak" or "Sir".
+- Greetings: When greeted ("good morning", "hi", "hello", "hey doki"), reply with signature JARVIS charm: "Good morning, Deepak. All systems are operational and running at peak performance. How may I assist you today?"
+- Intelligence: Exceptional reasoning in programming (Python, React, TypeScript, C++, system design), physics, mathematics, and device automation.
+- Multilingual Fluency: Full native comprehension and responses in English, Kannada (ಕನ್ನಡ), Hindi (हिन्दी), and Kanglish/Hinglish transliteration.
+- Device Mastery: You act as the unified neural operating system for Deepak's Windows laptop and OPPO Android phone.
+- Free Tier Awareness: Operating seamlessly on 100% zero-cost AI models.
 
 {kannada_rules}
 
@@ -72,7 +73,7 @@ CORE PERSONA & BEHAVIOR:
 CURRENT MEMORIES & PREFERENCES:
 {memory_str}
 
-Speak directly, concisely, and execute requests efficiently. Let's get to work."""
+Respond with intelligence, precision, and efficiency."""
 
     # =========================================================================
     # 1. GOOGLE GEMINI (PRIMARY AI BRAIN)
@@ -111,13 +112,17 @@ Speak directly, concisely, and execute requests efficiently. Let's get to work."
         """Streams response directly from Google Gemini REST API using SSE."""
         payload = self._convert_to_gemini_payload(messages, system_prompt)
         url = f"{self.gemini_base_url}/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
+        }
 
         async with httpx.AsyncClient(timeout=35.0) as client:
             async with client.stream(
                 "POST",
                 url,
                 json=payload,
-                headers={"Content-Type": "application/json"}
+                headers=headers
             ) as response:
                 if response.status_code == 429:
                     raise httpx.HTTPStatusError("Gemini quota or rate-limit exceeded (HTTP 429)", request=response.request, response=response)
@@ -179,9 +184,13 @@ Speak directly, concisely, and execute requests efficiently. Let's get to work."
         """Synchronous non-streaming Google Gemini completion."""
         payload = self._convert_to_gemini_payload(messages, system_prompt)
         url = f"{self.gemini_base_url}/models/{model}:generateContent?key={api_key}"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
+        }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            res = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            res = await client.post(url, json=payload, headers=headers)
             if res.status_code == 200:
                 data = res.json()
                 candidates = data.get("candidates", [])
@@ -322,8 +331,9 @@ Speak directly, concisely, and execute requests efficiently. Let's get to work."
         Always prioritizes Google Gemini.
         Automatically falls back to OpenRouter free models if Gemini hits 429 quota or fails.
         """
-        gemini_key = (api_key if api_key and api_key.startswith("AIza") else None) or get_effective_gemini_key()
-        openrouter_key = (api_key if api_key and (api_key.startswith("sk-or-") or "sk-" in api_key) else None) or get_effective_openrouter_key()
+        is_openrouter_key = bool(api_key and (api_key.startswith("sk-or-") or api_key.startswith("sk-")))
+        gemini_key = (api_key if api_key and not is_openrouter_key else None) or get_effective_gemini_key()
+        openrouter_key = (api_key if is_openrouter_key else None) or get_effective_openrouter_key()
 
         # Language detection
         last_user_content = ""
@@ -388,8 +398,9 @@ Speak directly, concisely, and execute requests efficiently. Let's get to work."
         memories: Optional[List[dict]] = None,
         api_key: Optional[str] = None
     ) -> dict:
-        gemini_key = (api_key if api_key and api_key.startswith("AIza") else None) or get_effective_gemini_key()
-        openrouter_key = (api_key if api_key and (api_key.startswith("sk-or-") or "sk-" in api_key) else None) or get_effective_openrouter_key()
+        is_openrouter_key = bool(api_key and (api_key.startswith("sk-or-") or api_key.startswith("sk-")))
+        gemini_key = (api_key if api_key and not is_openrouter_key else None) or get_effective_gemini_key()
+        openrouter_key = (api_key if is_openrouter_key else None) or get_effective_openrouter_key()
 
         last_user_content = ""
         for m in reversed(messages):
@@ -443,8 +454,9 @@ Speak directly, concisely, and execute requests efficiently. Let's get to work."
         gemini_status = "NOT_CONFIGURED"
         if g_key:
             try:
+                headers = {"x-goog-api-key": g_key}
                 async with httpx.AsyncClient(timeout=8.0) as client:
-                    res = await client.get(f"{self.gemini_base_url}/models?key={g_key}")
+                    res = await client.get(f"{self.gemini_base_url}/models?key={g_key}", headers=headers)
                     if res.status_code == 200:
                         gemini_status = "CONNECTED"
                     elif res.status_code in [401, 403]:

@@ -44,10 +44,10 @@ export function getStoredApiKey(): string {
 }
 
 export function setStoredApiKey(key: string): void {
-  if (key.startsWith('AIza')) {
-    setStoredGeminiKey(key);
-  } else {
+  if (key.startsWith('sk-') || key.startsWith('sk-or-')) {
     setStoredOpenRouterKey(key);
+  } else {
+    setStoredGeminiKey(key);
   }
 }
 
