@@ -34,10 +34,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enable CORS for local Vite frontend and mobile network access
+# Enable CORS for local Vite frontend, Vercel deployments and mobile network access
+cors_origins = [settings.FRONTEND_ORIGIN] if settings.FRONTEND_ORIGIN != "*" else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,6 +50,15 @@ app.include_router(models_router)
 app.include_router(config_router)
 app.include_router(devices_router)
 app.include_router(ws_router)
+
+@app.get("/api")
+async def api_root():
+    return {
+        "status": "online",
+        "service": "DOKI Backend API",
+        "health": "/api/health",
+        "version": "1.0.0"
+    }
 
 @app.get("/api/health")
 async def health():

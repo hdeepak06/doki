@@ -8,3 +8,4 @@ set PYTHONPATH=%CD%\backend
 call .\backend\venv\Scripts\activate.bat
 python backend\run.py
 pause
+

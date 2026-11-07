@@ -16,3 +16,4 @@ echo Dashboard: http://localhost:3000
 echo Backend API Docs: http://localhost:8000/docs
 echo ========================================================
 pause
+

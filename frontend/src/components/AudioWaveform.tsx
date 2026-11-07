@@ -72,3 +72,4 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
     />
   );
 };
+

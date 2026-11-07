@@ -82,3 +82,4 @@ export const SideNav: React.FC<SideNavProps> = ({ activeTab, onTabChange }) => {
     </aside>
   );
 };
+

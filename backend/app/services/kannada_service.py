@@ -226,3 +226,4 @@ KANNADA & KANGLISH LANGUAGE RULES:
 """
 
 kannada_service = KannadaIntelligenceService()
+
