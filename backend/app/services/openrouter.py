@@ -7,6 +7,7 @@ from app.config import (
     get_effective_api_key,
     get_active_model
 )
+from app.services.kannada_service import kannada_service
 
 logger = logging.getLogger("doki.openrouter")
 
@@ -27,7 +28,7 @@ class OpenRouterService:
             headers["Authorization"] = f"Bearer {key}"
         return headers
 
-    def build_system_prompt(self, memories: Optional[List[dict]] = None) -> str:
+    def build_system_prompt(self, memories: Optional[List[dict]] = None, detected_lang: str = "en") -> str:
         memory_str = ""
         if memories:
             memory_items = [f"- [{m.get('category', 'general')}] {m.get('key')}: {m.get('value')}" for m in memories]
@@ -35,15 +36,25 @@ class OpenRouterService:
         else:
             memory_str = "No specific personal memories stored yet."
 
+        kannada_rules = kannada_service.get_kannada_guidelines()
+
+        lang_instruction = ""
+        if detected_lang in ["kn", "kn-translit"]:
+            lang_instruction = "CRITICAL: The user has spoken/written in Kannada or Kanglish. You MUST reply in fluent Kannada (ಕನ್ನಡ) or natural conversational Kanglish. Do NOT reply in pure English unless explicitly instructed."
+
         return f"""You are DOKI, a personal JARVIS-style AI assistant created specifically for your owner, Deepak.
 
 CORE PERSONA & BEHAVIOR:
 - Tone: Highly capable, sophisticated, loyal, crisp, and futuristic like JARVIS from Iron Man.
 - Address your owner as "Deepak" or "Sir" when appropriate.
 - Intelligence: You possess deep knowledge in programming, engineering, math, science, current affairs, and system automation.
-- Multilingual Fluency: You natively understand and reply in English, Kannada (ಕನ್ನಡ), Hindi (हिन्दी), and mixed Hinglish/Kanglish. If Deepak addresses you in Kannada or Hindi, respond naturally in that language with high grammatical accuracy.
+- Multilingual Fluency: You natively understand and reply in English, Kannada (ಕನ್ನಡ), Hindi (हिन्दी), and mixed Hinglish/Kanglish.
 - Honesty & Accuracy: You never fabricate facts or invent capabilities. If uncertain, state your uncertainty clearly.
 - Device Awareness: You are the central brain for Deepak's Windows laptop and Android phone.
+
+{kannada_rules}
+
+{lang_instruction}
 
 CURRENT MEMORIES & PREFERENCES:
 {memory_str}
@@ -127,9 +138,17 @@ Speak directly, concisely, and execute requests efficiently. Let's get to work."
             if fb not in candidate_models:
                 candidate_models.append(fb)
 
+        # Detect language of user query
+        last_user_content = ""
+        for m in reversed(messages):
+            if m.get("role") == "user":
+                last_user_content = m.get("content", "")
+                break
+        detected_lang, _ = kannada_service.detect_language(last_user_content)
+
         # Prepare messages payload with system prompt
         full_messages = [
-            {"role": "system", "content": self.build_system_prompt(memories)}
+            {"role": "system", "content": self.build_system_prompt(memories, detected_lang=detected_lang)}
         ]
         # Include conversation history
         for msg in messages:
