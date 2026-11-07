@@ -13,3 +13,4 @@ def sanitize_string(text: str) -> str:
 def is_kannada_text(text: str) -> bool:
     """Quick check if a string contains Kannada Unicode characters."""
     return bool(re.search(r"[\u0C80-\u0CFF]", text))
+

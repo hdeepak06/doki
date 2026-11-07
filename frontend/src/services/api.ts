@@ -2,16 +2,82 @@ import type { SystemConfig, ModelInfo, Device, Conversation } from '../types';
 
 const BASE_URL = '';
 
+export function getStoredGeminiKey(): string {
+  try {
+    return localStorage.getItem('doki_gemini_api_key') || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setStoredGeminiKey(key: string): void {
+  try {
+    if (key && key.trim()) {
+      localStorage.setItem('doki_gemini_api_key', key.trim());
+    } else {
+      localStorage.removeItem('doki_gemini_api_key');
+    }
+  } catch {}
+}
+
+export function getStoredOpenRouterKey(): string {
+  try {
+    return localStorage.getItem('doki_openrouter_api_key') || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setStoredOpenRouterKey(key: string): void {
+  try {
+    if (key && key.trim()) {
+      localStorage.setItem('doki_openrouter_api_key', key.trim());
+    } else {
+      localStorage.removeItem('doki_openrouter_api_key');
+    }
+  } catch {}
+}
+
+// Backward-compatibility alias
+export function getStoredApiKey(): string {
+  return getStoredGeminiKey() || getStoredOpenRouterKey();
+}
+
+export function setStoredApiKey(key: string): void {
+  if (key.startsWith('AIza')) {
+    setStoredGeminiKey(key);
+  } else {
+    setStoredOpenRouterKey(key);
+  }
+}
+
 export async function fetchConfig(): Promise<SystemConfig> {
   const res = await fetch(`${BASE_URL}/api/config`);
   if (!res.ok) throw new Error('Failed to load system config');
   return res.json();
 }
 
+export async function checkAiConnectivity(geminiKey?: string, openrouterKey?: string) {
+  const params = new URLSearchParams();
+  const gKey = geminiKey || getStoredGeminiKey();
+  const oKey = openrouterKey || getStoredOpenRouterKey();
+  if (gKey) params.append('gemini_key', gKey);
+  if (oKey) params.append('openrouter_key', oKey);
+
+  const res = await fetch(`${BASE_URL}/api/config/check?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to check AI connectivity');
+  return res.json();
+}
+
 export async function updateConfig(data: {
+  gemini_api_key?: string;
   openrouter_api_key?: string;
+  ai_primary_provider?: string;
   active_model?: string;
+  gemini_model?: string;
   assistant_name?: string;
+  free_only_mode?: boolean;
+  auto_fallback_enabled?: boolean;
 }): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/config`, {
     method: 'POST',
@@ -76,19 +142,27 @@ export async function streamChat(
   conversationId: string | null,
   model: string | null,
   onChunk: (chunk: string) => void,
-  onStart: (modelUsed: string) => void,
+  onStart: (modelUsed: string, providerUsed?: string) => void,
   onDone: () => void,
   onError: (err: string) => void
 ): Promise<string | null> {
   try {
+    const geminiKey = getStoredGeminiKey();
+    const openrouterKey = getStoredOpenRouterKey();
+    const effectiveKey = geminiKey || openrouterKey;
+
     const res = await fetch(`${BASE_URL}/api/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(effectiveKey ? { 'X-AI-Key': effectiveKey } : {})
+      },
       body: JSON.stringify({
         message,
         conversation_id: conversationId,
-        model,
+        model: model || undefined,
         stream: true,
+        api_key: effectiveKey || undefined
       }),
     });
 
@@ -116,7 +190,7 @@ export async function streamChat(
           try {
             const parsed = JSON.parse(line.slice(6));
             if (parsed.type === 'start') {
-              onStart(parsed.model);
+              onStart(parsed.model, parsed.provider);
             } else if (parsed.type === 'chunk') {
               onChunk(parsed.content);
             } else if (parsed.type === 'end') {

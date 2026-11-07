@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db, SessionLocal
 from app.models.conversation import Conversation, Message
 from app.schemas.chat import ChatRequest, ConversationResponse
-from app.services.openrouter import openrouter_service
+from app.services.ai_service import ai_service
 from app.services.memory_service import MemoryService
 from app.services.kannada_service import kannada_service
 from app.services.websocket_manager import ws_manager
@@ -141,12 +141,16 @@ def stream_chat(req: ChatRequest, db: Session = Depends(get_db)):
                 return
 
         accumulated_text = []
-        used_model = req.model or "openrouter/free"
+        used_model = req.model or "gemini-2.5-flash"
 
-        async for chunk_json in openrouter_service.stream_chat(
+        # Resolve explicit request key or environment key
+        client_key = req.api_key.strip() if (req.api_key and len(req.api_key.strip()) > 8) else None
+
+        async for chunk_json in ai_service.stream_chat(
             messages=history,
             model=req.model,
-            memories=memories
+            memories=memories,
+            api_key=client_key
         ):
             try:
                 event = json.loads(chunk_json.strip())

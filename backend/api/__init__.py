@@ -4,7 +4,9 @@ from app.api import (
     models_router,
     config_router,
     devices_router,
-    ws_router
+    ws_router,
+    research_router,
+    memory_router
 )
 
 __all__ = [
@@ -12,5 +14,7 @@ __all__ = [
     "models_router",
     "config_router",
     "devices_router",
-    "ws_router"
+    "ws_router",
+    "research_router",
+    "memory_router"
 ]

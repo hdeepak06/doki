@@ -35,4 +35,5 @@ class ChatRequest(BaseModel):
     model: Optional[str] = None
     stream: bool = True
     target_device: Optional[str] = None  # 'laptop' or 'android' or 'backend'
+    api_key: Optional[str] = None
 

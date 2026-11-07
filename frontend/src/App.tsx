@@ -6,15 +6,20 @@ import { DevicePanel } from './components/DevicePanel';
 import { ChatInterface } from './components/ChatInterface';
 import { SettingsModal } from './components/SettingsModal';
 import { AudioWaveform } from './components/AudioWaveform';
+import { VoiceAssistantView } from './components/VoiceAssistantView';
+import { LaptopControlView } from './components/LaptopControlView';
+import { MobileControlView } from './components/MobileControlView';
+import { ResearchView } from './components/ResearchView';
+import { MemoryView } from './components/MemoryView';
 import type { Device, SystemConfig } from './types';
 import { fetchConfig, fetchDevices, sendDeviceCommand } from './services/api';
-import { Globe, Database, Smartphone, Laptop } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [config, setConfig] = useState<SystemConfig | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [backendOnline, setBackendOnline] = useState(true);
   const [coreState, setCoreState] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
 
   useEffect(() => {
@@ -24,6 +29,17 @@ export const App: React.FC = () => {
   }, []);
 
   const loadInitialData = async () => {
+    try {
+      const res = await fetch('/api/health');
+      if (res.ok) {
+        setBackendOnline(true);
+      } else {
+        setBackendOnline(false);
+      }
+    } catch {
+      setBackendOnline(false);
+    }
+
     try {
       const cfg = await fetchConfig();
       setConfig(cfg);
@@ -43,11 +59,12 @@ export const App: React.FC = () => {
   };
 
   const laptop = devices.find((d) => d.device_type === 'laptop') || null;
+  const androidDevice = devices.find((d) => d.device_type === 'android') || null;
 
   const handleDeviceCommand = async (target: 'laptop' | 'android', action: string) => {
     try {
-      await sendDeviceCommand(target, action);
-      alert(`Command '${action}' transmitted to ${target}.`);
+      const res = await sendDeviceCommand(target, action);
+      alert(res.message || `Command '${action}' transmitted to ${target}.`);
     } catch {
       alert(`Failed to send command to ${target}`);
     }
@@ -61,10 +78,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-[#030712] text-slate-100 overflow-hidden select-none">
-      {/* Top Header */}
+      {/* Top Header with live startup & AI Brain indicators */}
       <TopBar
         config={config}
         laptop={laptop}
+        backendOnline={backendOnline}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onEmergencyStop={() => {
           if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -101,20 +119,67 @@ export const App: React.FC = () => {
 
                 <AudioWaveform active={coreState !== 'idle'} color="#06B6D4" height={36} />
 
-                {/* Quick Action Trigger */}
+                {/* Quick Action Triggers */}
                 <div className="flex items-center space-x-3 pt-2">
                   <button
-                    onClick={() => setActiveTab('chat')}
-                    className="px-6 py-2.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900/60 transition-all jarvis-glow"
+                    onClick={() => setActiveTab('voice')}
+                    className="px-6 py-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/50 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900/60 transition-all jarvis-glow"
                   >
-                    Open Neural Chat
+                    🎙️ Voice Assistant
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('chat')}
+                    className="px-6 py-2.5 rounded-xl border border-cyan-500/30 bg-cyan-950/20 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900/40 transition-all"
+                  >
+                    💬 Neural Chat
                   </button>
                   <button
                     onClick={() => setIsSettingsOpen(true)}
                     className="px-6 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-300 font-mono text-xs hover:border-slate-700 transition-all"
                   >
-                    Configure Models
+                    ⚙️ Configure Key & Models
                   </button>
+                </div>
+              </div>
+
+              {/* AI Brain Status Indicators Grid (Section 5) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 font-mono text-xs">
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1">
+                  <div className="text-slate-500 text-[10px]">AI BRAIN</div>
+                  <div className={`font-bold ${config?.has_gemini_key || config?.has_openrouter_key ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {config?.has_gemini_key || config?.has_openrouter_key ? 'Connected' : 'Offline'}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1">
+                  <div className="text-slate-500 text-[10px]">PRIMARY PROVIDER</div>
+                  <div className="font-bold text-cyan-300">Google Gemini</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1">
+                  <div className="text-slate-500 text-[10px]">PRIMARY MODEL</div>
+                  <div className="font-bold text-cyan-400 truncate" title={config?.primary_model}>
+                    {config?.primary_model || 'gemini-2.5-flash'}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1">
+                  <div className="text-slate-500 text-[10px]">MODE</div>
+                  <div className="font-bold text-emerald-400">FREE (₹0)</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1">
+                  <div className="text-slate-500 text-[10px]">FALLBACK</div>
+                  <div className="font-bold text-sky-400">
+                    {config?.has_openrouter_key ? 'Ready' : 'OpenRouter Free'}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1">
+                  <div className="text-slate-500 text-[10px]">ACTIVE ROUTE</div>
+                  <div className="font-bold text-slate-200 uppercase">
+                    {config?.active_provider === 'gemini' ? 'Gemini Primary' : 'OpenRouter Fallback'}
+                  </div>
                 </div>
               </div>
 
@@ -131,152 +196,80 @@ export const App: React.FC = () => {
           {activeTab === 'chat' && (
             <div className="h-full relative z-10">
               <ChatInterface
-                activeModel={config?.active_model || 'openrouter/free'}
+                activeModel={config?.active_model || 'gemini-2.5-flash'}
                 onModelClick={() => setIsSettingsOpen(true)}
               />
             </div>
           )}
 
-          {/* TAB 3: VOICE ASSISTANT */}
+          {/* TAB 3: VOICE ASSISTANT (Continuous & Wake-Word) */}
           {activeTab === 'voice' && (
-            <div className="max-w-3xl mx-auto h-full flex flex-col items-center justify-center text-center space-y-6 relative z-10">
-              <JarvisCore state={coreState} size={300} />
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold font-mono text-cyan-400 tracking-wider">
-                  VOICE ASSISTANT // CONTINUOUS MODE
-                </h2>
-                <p className="text-slate-400 font-mono text-xs">
-                  Wake Word: <span className="text-cyan-300 font-bold">"Hey DOKI"</span> | Native Multilingual: English, Kannada, Hindi
-                </p>
-              </div>
-              <AudioWaveform active={true} color="#06B6D4" height={48} />
-              <p className="text-xs text-slate-500 font-mono max-w-md">
-                Stage 2 Voice Module: Real-time browser speech recognition and synthesis are active. Full local Vosk and Whisper.cpp pipeline will link to wake-word continuous background listening.
-              </p>
-              <button
-                onClick={() => setActiveTab('chat')}
-                className="px-6 py-2 rounded-xl border border-cyan-500/40 bg-cyan-950/30 text-cyan-300 text-xs font-mono hover:bg-cyan-900/50"
-              >
-                Switch to Text Input
-              </button>
+            <div className="h-full relative z-10">
+              <VoiceAssistantView
+                activeModel={config?.active_model || 'gemini-2.5-flash'}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+              />
             </div>
           )}
 
-          {/* TAB 4: LAPTOP CONTROL (Stage 3 preview) */}
+          {/* TAB 4: WINDOWS LAPTOP CONTROL */}
           {activeTab === 'laptop' && (
-            <div className="max-w-4xl mx-auto space-y-6 relative z-10">
-              <div className="p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Laptop className="w-6 h-6 text-cyan-400" />
-                  <h2 className="text-lg font-bold font-mono text-slate-100">
-                    WINDOWS LAPTOP AUTOMATION (STAGE 3)
-                  </h2>
-                </div>
-                <p className="text-sm text-slate-400 mb-6 font-mono">
-                  Controlled directly via local DOKI Python agent. PyAutoGUI, psutil, Window Management, OCR and safe command execution.
-                </p>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-                  {['Open Chrome', 'Open VS Code', 'Check Battery', 'Check RAM', 'File Search', 'Lock Screen', 'Screenshot OCR', 'Volume Up'].map(
-                    (action, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleDeviceCommand('laptop', action)}
-                        className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300 transition-all text-left"
-                      >
-                        ⚡ {action}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
+            <div className="h-full relative z-10">
+              <LaptopControlView laptop={laptop} onRefresh={loadDevices} />
             </div>
           )}
 
-          {/* TAB 5: MOBILE CONTROL (Stage 4 preview) */}
+          {/* TAB 5: OPPO ANDROID CONTROL */}
           {activeTab === 'mobile' && (
-            <div className="max-w-4xl mx-auto space-y-6 relative z-10">
-              <div className="p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Smartphone className="w-6 h-6 text-cyan-400" />
-                  <h2 className="text-lg font-bold font-mono text-slate-100">
-                    OPPO ANDROID COMPANION (STAGE 4)
-                  </h2>
-                </div>
-                <p className="text-sm text-slate-400 mb-6 font-mono">
-                  Native Android Companion App connects over WebSocket local network mesh. AccessibilityService, Alarms, Notifications, and App Launching.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-                  {['Open WhatsApp', 'Open YouTube', 'Check Phone Battery', 'Set Alarm', 'Read Notifications', 'Send SMS Intent', 'Toggle Flashlight', 'Sync Clipboard'].map(
-                    (action, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleDeviceCommand('android', action)}
-                        className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300 transition-all text-left"
-                      >
-                        📱 {action}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
+            <div className="h-full relative z-10">
+              <MobileControlView androidDevice={androidDevice} onRefresh={loadDevices} />
             </div>
           )}
 
-          {/* TAB 6: INTERNET RESEARCH (Stage 6 preview) */}
+          {/* TAB 6: INTERNET RESEARCH */}
           {activeTab === 'research' && (
-            <div className="max-w-4xl mx-auto p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow relative z-10">
-              <div className="flex items-center space-x-3 mb-4">
-                <Globe className="w-6 h-6 text-cyan-400" />
-                <h2 className="text-lg font-bold font-mono text-slate-100">INTERNET KNOWLEDGE & RESEARCH</h2>
-              </div>
-              <p className="text-sm text-slate-400 mb-4 font-mono">
-                Real-time web research module using free search integrations. Ask questions in Chat to trigger live synthesis.
-              </p>
-              <button
-                onClick={() => setActiveTab('chat')}
-                className="px-4 py-2 rounded-xl border border-cyan-500/40 bg-cyan-950/30 text-cyan-300 text-xs font-mono"
-              >
-                Launch Research in Chat ➔
-              </button>
+            <div className="h-full relative z-10">
+              <ResearchView />
             </div>
           )}
 
-          {/* TAB 7: MEMORY (Stage 6 preview) */}
+          {/* TAB 7: MEMORY */}
           {activeTab === 'memory' && (
-            <div className="max-w-4xl mx-auto p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow relative z-10">
-              <div className="flex items-center space-x-3 mb-4">
-                <Database className="w-6 h-6 text-cyan-400" />
-                <h2 className="text-lg font-bold font-mono text-slate-100">PERSONAL MEMORY SYSTEM</h2>
-              </div>
-              <p className="text-sm text-slate-400 mb-4 font-mono">
-                Persistent SQLite memory bank stored at <code className="text-cyan-400">backend/data/doki.db</code>. Remembers Deepak's preferences, instructions, and past sessions.
-              </p>
+            <div className="h-full relative z-10">
+              <MemoryView />
             </div>
           )}
 
           {/* TAB 8: TASK HISTORY */}
           {activeTab === 'history' && (
-            <div className="max-w-4xl mx-auto p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow relative z-10">
-              <h2 className="text-lg font-bold font-mono text-slate-100 mb-4">TASK EXECUTION TIMELINE</h2>
+            <div className="max-w-4xl mx-auto p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow relative z-10 space-y-4">
+              <h2 className="text-lg font-bold font-mono text-slate-100">TASK EXECUTION TIMELINE</h2>
               <p className="text-sm text-slate-400 font-mono">
-                All executed commands, AI responses, and device interactions are logged to local SQLite database.
+                All voice inputs, laptop automation executions, and neural chat turns are logged to local SQLite database.
               </p>
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50 font-mono text-xs text-slate-400 space-y-2">
+                <div className="flex items-center justify-between text-slate-300">
+                  <span>SYSTEM LOG STATUS</span>
+                  <span className="text-emerald-400">ACTIVE</span>
+                </div>
+                <div>Storage: <code className="text-cyan-300">data/doki.db</code></div>
+                <div>Retention: Persistent across sessions</div>
+              </div>
             </div>
           )}
 
           {/* TAB 9: SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="max-w-3xl mx-auto p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow relative z-10 space-y-4">
-              <h2 className="text-lg font-bold font-mono text-slate-100">CONFIGURATION & PREFERENCES</h2>
-              <p className="text-sm text-slate-400 font-mono">
-                Adjust OpenRouter free models, API keys, voice speeds, and local device pairing codes.
+            <div className="max-w-3xl mx-auto p-6 rounded-2xl border border-cyan-500/20 bg-slate-950/80 jarvis-glow relative z-10 space-y-4 font-mono">
+              <h2 className="text-lg font-bold text-slate-100">CONFIGURATION & PREFERENCES</h2>
+              <p className="text-sm text-slate-400">
+                Manage your free OpenRouter API key, model routers, Kannada voice preferences, and local companion device pairing.
               </p>
               <button
                 onClick={() => setIsSettingsOpen(true)}
-                className="px-5 py-2.5 rounded-xl border border-cyan-400 bg-cyan-950 text-cyan-300 text-xs font-mono font-bold"
+                className="px-5 py-2.5 rounded-xl border border-cyan-400 bg-cyan-950 text-cyan-300 text-xs font-bold hover:bg-cyan-900 transition-all jarvis-glow"
               >
-                Open Settings Panel
+                Open System Settings Modal ➔
               </button>
             </div>
           )}

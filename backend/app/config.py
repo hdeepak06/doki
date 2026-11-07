@@ -25,14 +25,26 @@ class Settings(BaseSettings):
     APP_ENV: str = os.environ.get("APP_ENV", "production")
     FRONTEND_ORIGIN: str = os.environ.get("FRONTEND_ORIGIN", "*")
     
-    # OpenRouter Config
+    # AI Providers Configuration
+    AI_PRIMARY_PROVIDER: str = os.environ.get("AI_PRIMARY_PROVIDER", "gemini")
+    AI_FREE_ONLY: bool = True
+    AUTOMATIC_PROVIDER_FALLBACK: bool = True
+
+    # Google Gemini Config (PRIMARY BRAIN)
+    GEMINI_API_KEY: Optional[str] = os.environ.get("GEMINI_API_KEY")
+    GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_FALLBACK_MODELS: List[str] = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-8b"
+    ]
+    
+    # OpenRouter Config (SECONDARY FREE FALLBACK)
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_API_KEY: Optional[str] = os.environ.get("OPENROUTER_API_KEY")
-    OPENROUTER_MODEL: Optional[str] = os.environ.get("OPENROUTER_MODEL")
-    DEFAULT_MODEL: str = os.environ.get("OPENROUTER_MODEL", "openrouter/free")
-    
-    # Free model fallbacks (always ending in :free or openrouter/free)
-    FALLBACK_MODELS: List[str] = [
+    OPENROUTER_MODEL: str = os.environ.get("OPENROUTER_MODEL", "openrouter/free")
+    OPENROUTER_FALLBACK_MODELS: List[str] = [
         "openrouter/free",
         "meta-llama/llama-3.2-3b-instruct:free",
         "google/gemini-2.0-flash-lite:free",
@@ -41,6 +53,17 @@ class Settings(BaseSettings):
         "mistralai/mistral-7b-instruct:free"
     ]
     
+    # Backward compatibility
+    DEFAULT_MODEL: str = "gemini-2.5-flash"
+    FALLBACK_MODELS: List[str] = [
+        "openrouter/free",
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "google/gemini-2.0-flash-lite:free",
+        "qwen/qwen-2.5-coder-32b-instruct:free",
+        "deepseek/deepseek-r1:free",
+        "mistralai/mistral-7b-instruct:free"
+    ]
+
     # Database URL
     DATABASE_URL: str = f"sqlite:///{(DATA_DIR / 'doki.db').as_posix()}"
     
@@ -71,25 +94,47 @@ def save_persisted_settings(data: dict) -> None:
         with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(current, f, indent=2)
     except Exception as e:
-        # Graceful fallback if filesystem is read-only
         print(f"Warning: Could not persist settings to file: {e}")
 
-def get_effective_api_key() -> str:
-    # 1. Environment variable (Vercel Production / CI)
+def get_effective_gemini_key() -> str:
+    """Retrieves Google Gemini API key from environment or local persisted settings."""
+    env_key = os.environ.get("GEMINI_API_KEY") or settings.GEMINI_API_KEY
+    if env_key and len(env_key.strip()) > 5:
+        return env_key.strip()
+    persisted = get_persisted_settings()
+    if persisted.get("gemini_api_key"):
+        return persisted["gemini_api_key"].strip()
+    return ""
+
+def get_effective_openrouter_key() -> str:
+    """Retrieves OpenRouter API key from environment or local persisted settings."""
     env_key = os.environ.get("OPENROUTER_API_KEY") or settings.OPENROUTER_API_KEY
     if env_key and len(env_key.strip()) > 5:
         return env_key.strip()
-    # 2. Local persisted settings file
     persisted = get_persisted_settings()
     if persisted.get("openrouter_api_key"):
         return persisted["openrouter_api_key"].strip()
     return ""
 
-def get_active_model() -> str:
-    # 1. Environment variable override
-    env_model = os.environ.get("OPENROUTER_MODEL") or settings.OPENROUTER_MODEL
-    if env_model:
-        return env_model.strip()
-    # 2. Local persisted settings override
+# Alias for backward-compatibility
+def get_effective_api_key() -> str:
+    return get_effective_gemini_key() or get_effective_openrouter_key()
+
+def get_active_provider() -> str:
     persisted = get_persisted_settings()
-    return persisted.get("active_model", settings.DEFAULT_MODEL)
+    return persisted.get("ai_primary_provider", settings.AI_PRIMARY_PROVIDER)
+
+def get_active_model() -> str:
+    persisted = get_persisted_settings()
+    provider = get_active_provider()
+    if provider == "gemini":
+        return persisted.get("gemini_model", settings.GEMINI_MODEL)
+    return persisted.get("active_model", settings.OPENROUTER_MODEL)
+
+def is_free_only_mode() -> bool:
+    persisted = get_persisted_settings()
+    return persisted.get("free_only_mode", True)
+
+def is_auto_fallback_enabled() -> bool:
+    persisted = get_persisted_settings()
+    return persisted.get("auto_fallback_enabled", True)

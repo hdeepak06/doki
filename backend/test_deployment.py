@@ -32,7 +32,8 @@ def run_tests():
     assert "/api/chat/stream" in paths, "Must register /api/chat/stream"
     assert "/api/models" in paths, "Must register /api/models"
     assert "/api/config" in paths, "Must register /api/config"
-    print("✓ All required API routes registered under /api prefix")
+    assert "/api/research" in paths, "Must register /api/research"
+    assert "/api/memory" in paths, "Must register /api/memory"
     print("✓ All required API routes registered under /api prefix")
 
     # 3. Test missing environment variables
@@ -40,7 +41,7 @@ def run_tests():
     key = get_effective_api_key()
     model = get_active_model()
     print(f"API Key present: {bool(key)}, Active model: {model}")
-    assert model == "openrouter/free"
+    assert "gemini" in model or model == "openrouter/free"
     print("✓ Gracefully defaulted to free tier without crashing")
 
     # 4. Test Vercel temp directory database isolation

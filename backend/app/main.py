@@ -9,7 +9,9 @@ from app.api import (
     models_router,
     config_router,
     devices_router,
-    ws_router
+    ws_router,
+    research_router,
+    memory_router
 )
 
 # Configure logging
@@ -50,6 +52,8 @@ app.include_router(models_router)
 app.include_router(config_router)
 app.include_router(devices_router)
 app.include_router(ws_router)
+app.include_router(research_router)
+app.include_router(memory_router)
 
 @app.get("/api")
 async def api_root():
